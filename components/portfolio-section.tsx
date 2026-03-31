@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { ImageIcon } from "lucide-react"
+import { useEffect, useMemo, useRef } from "react"
 import { AnimateOnScroll } from "./animate-on-scroll"
 
 const projects = [
@@ -89,7 +88,10 @@ const warehouses = {
 
 export function PortfolioSection() {
   const sliderRef = useRef<HTMLDivElement | null>(null)
-  const [isPaused, setIsPaused] = useState(false)
+  const rafRef = useRef<number | null>(null)
+  const lastTimeRef = useRef<number | null>(null)
+
+  const loopProjects = useMemo(() => [...projects, ...projects], [])
 
   const scrollSlider = (direction: "left" | "right") => {
     const container = sliderRef.current
@@ -106,13 +108,33 @@ export function PortfolioSection() {
     const container = sliderRef.current
     if (!container) return
 
-    const interval = setInterval(() => {
-      if (isPaused) return
-      scrollSlider("right")
-    }, 5000)
+    const SPEED_PX_PER_SEC = 18
 
-    return () => clearInterval(interval)
-  }, [isPaused])
+    const tick = (t: number) => {
+      if (!container) return
+
+      const last = lastTimeRef.current ?? t
+      const dt = Math.min(64, t - last)
+      lastTimeRef.current = t
+
+      container.scrollLeft += (SPEED_PX_PER_SEC * dt) / 1000
+
+      const half = container.scrollWidth / 2
+      if (half > 0 && container.scrollLeft >= half) {
+        container.scrollLeft -= half
+      }
+
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+      lastTimeRef.current = null
+    }
+  }, [])
 
   return (
     <section id="portfolio" className="py-20 bg-background">
@@ -167,14 +189,14 @@ export function PortfolioSection() {
 
           <div
             ref={sliderRef}
-            className="flex gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
+            className="flex gap-6 overflow-x-auto overscroll-x-contain pb-4 -mx-4 px-4 md:mx-0 md:px-0"
           >
-            {projects.map((project, index) => (
-              <AnimateOnScroll key={project.name} variant="fade-up" delay={index * 50}>
+            {loopProjects.map((project, index) => (
+              <AnimateOnScroll
+                key={`${project.name}-${index}`}
+                variant="fade-up"
+                delay={(index % projects.length) * 50}
+              >
                 <div className="snap-start min-w-[260px] sm:min-w-[300px] md:min-w-[320px] max-w-xs bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full">
                   <div className="relative aspect-square bg-muted border-b border-border">
                     <img

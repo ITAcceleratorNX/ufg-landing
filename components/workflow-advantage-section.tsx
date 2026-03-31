@@ -87,12 +87,12 @@ export function WorkflowAdvantageSection() {
               </div>
               
               {/* Floating cards */}
-              <div className="absolute top-16 -right-4 md:right-0 bg-[#1a1a2e]/90 rounded-xl p-4 backdrop-blur-md border border-primary-foreground/20 shadow-xl">
+              <div className="absolute top-16 right-2 md:right-0 max-w-[calc(100vw-2rem)] bg-[#1a1a2e]/90 rounded-xl p-4 backdrop-blur-md border border-primary-foreground/20 shadow-xl">
                 <p className="text-xs text-primary-foreground/60 uppercase tracking-wider">CLIMATE CONTROL</p>
                 <p className="text-2xl font-bold text-[#00d4ff]">22.5°C</p>
               </div>
               
-              <div className="absolute bottom-40 -left-4 md:left-0 bg-[#1a1a2e]/90 rounded-xl p-4 backdrop-blur-md border border-primary-foreground/20 shadow-xl flex items-center gap-3">
+              <div className="absolute bottom-40 left-2 md:left-0 max-w-[calc(100vw-2rem)] bg-[#1a1a2e]/90 rounded-xl p-4 backdrop-blur-md border border-primary-foreground/20 shadow-xl flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
