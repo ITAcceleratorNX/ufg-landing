@@ -30,7 +30,7 @@ export function ContactSection() {
             <AnimateOnScroll variant="fade-up" delay={200}>
               <div className="relative w-64 h-80 bg-primary-foreground/10 rounded-2xl border border-primary-foreground/30 mx-auto lg:mx-0 overflow-hidden">
                 <img
-                  src="/images/contact-person.webp"
+                  src="/images/contact-person.PNG"
                   alt="Представитель TMK для связи"
                   className="absolute inset-0 h-full w-full object-cover object-top"
                 />
