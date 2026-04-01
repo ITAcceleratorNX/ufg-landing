@@ -17,11 +17,10 @@ export default function Home() {
       <Header />
       <HeroSection />
       <AboutSection />
-      <PartnersSection />
+        <WorkflowAdvantageSection />
+        <WorkflowFeaturesSection />
       <TechnicalMaintenanceSection />
       <CleaningSection />
-      <WorkflowAdvantageSection />
-      <WorkflowFeaturesSection />
       <DocumentWorkflowSection />
       <PortfolioSection />
       <ContactSection />
