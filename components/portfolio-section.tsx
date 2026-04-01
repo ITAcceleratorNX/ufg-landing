@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react"
 import { AnimateOnScroll } from "./animate-on-scroll"
+import { cn } from "@/lib/utils"
 
 const projects = [
   {
@@ -90,6 +91,8 @@ export function PortfolioSection() {
   const sliderRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
+  const userInteractingRef = useRef(false)
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loopProjects = useMemo(() => [...projects, ...projects], [])
 
@@ -97,11 +100,26 @@ export function PortfolioSection() {
     const container = sliderRef.current
     if (!container) return
 
-    const scrollAmount = container.clientWidth * 0.8
-    container.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    })
+    userInteractingRef.current = true
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+
+    const firstSlide = container.querySelector<HTMLElement>("[data-carousel-slide]")
+    const gapStr = getComputedStyle(container).gap
+    const gapPx = gapStr ? parseFloat(gapStr) || 24 : 24
+    const step = (firstSlide?.offsetWidth ?? 280) + gapPx
+
+    const nextLeft =
+      direction === "left"
+        ? container.scrollLeft - step
+        : container.scrollLeft + step
+
+    // instant scroll avoids fighting the RAF loop + smooth scroll cancellation
+    container.scrollTo({ left: nextLeft, behavior: "auto" })
+
+    resumeTimeoutRef.current = setTimeout(() => {
+      userInteractingRef.current = false
+      resumeTimeoutRef.current = null
+    }, 4500)
   }
 
   useEffect(() => {
@@ -110,6 +128,47 @@ export function PortfolioSection() {
 
     const SPEED_PX_PER_SEC = 18
 
+    const scheduleResume = () => {
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+      resumeTimeoutRef.current = setTimeout(() => {
+        userInteractingRef.current = false
+        resumeTimeoutRef.current = null
+      }, 3200)
+    }
+
+    const onPointerDown = () => {
+      userInteractingRef.current = true
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+    }
+
+    const onPointerUp = () => {
+      scheduleResume()
+    }
+
+    /** Vertical wheel over the strip should scroll the page, not get trapped on overflow-x. */
+    const onWheel = (e: WheelEvent) => {
+      const absX = Math.abs(e.deltaX)
+      const absY = Math.abs(e.deltaY)
+      if (absX > absY && absX > 1) {
+        userInteractingRef.current = true
+        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+        resumeTimeoutRef.current = setTimeout(() => {
+          userInteractingRef.current = false
+          resumeTimeoutRef.current = null
+        }, 2500)
+        return
+      }
+      if (absY >= absX && absY > 0) {
+        e.preventDefault()
+        window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" })
+      }
+    }
+
+    container.addEventListener("pointerdown", onPointerDown)
+    container.addEventListener("pointerup", onPointerUp)
+    container.addEventListener("pointercancel", onPointerUp)
+    container.addEventListener("wheel", onWheel, { passive: false })
+
     const tick = (t: number) => {
       if (!container) return
 
@@ -117,11 +176,13 @@ export function PortfolioSection() {
       const dt = Math.min(64, t - last)
       lastTimeRef.current = t
 
-      container.scrollLeft += (SPEED_PX_PER_SEC * dt) / 1000
+      if (!userInteractingRef.current) {
+        container.scrollLeft += (SPEED_PX_PER_SEC * dt) / 1000
 
-      const half = container.scrollWidth / 2
-      if (half > 0 && container.scrollLeft >= half) {
-        container.scrollLeft -= half
+        const half = container.scrollWidth / 2
+        if (half > 0 && container.scrollLeft >= half) {
+          container.scrollLeft -= half
+        }
       }
 
       rafRef.current = requestAnimationFrame(tick)
@@ -130,6 +191,11 @@ export function PortfolioSection() {
     rafRef.current = requestAnimationFrame(tick)
 
     return () => {
+      container.removeEventListener("pointerdown", onPointerDown)
+      container.removeEventListener("pointerup", onPointerUp)
+      container.removeEventListener("pointercancel", onPointerUp)
+      container.removeEventListener("wheel", onWheel)
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
       lastTimeRef.current = null
@@ -189,15 +255,30 @@ export function PortfolioSection() {
 
           <div
             ref={sliderRef}
-            className="flex gap-6 overflow-x-auto overscroll-x-contain pb-4 -mx-4 px-4 md:mx-0 md:px-0"
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Проекты и объекты"
+            tabIndex={0}
+            className={cn(
+              "flex flex-nowrap gap-4 sm:gap-6 items-stretch",
+              "overflow-x-auto overflow-y-clip overscroll-x-contain",
+              "[-webkit-overflow-scrolling:touch]",
+              "snap-x snap-mandatory scroll-px-4",
+              "pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:scroll-p-0",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg",
+            )}
           >
             {loopProjects.map((project, index) => (
               <AnimateOnScroll
                 key={`${project.name}-${index}`}
                 variant="fade-up"
                 delay={(index % projects.length) * 50}
+                className="shrink-0 snap-start snap-always"
               >
-                <div className="snap-start min-w-[260px] sm:min-w-[300px] md:min-w-[320px] max-w-xs bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full">
+                <div
+                  data-carousel-slide
+                  className="min-w-[260px] sm:min-w-[300px] md:min-w-[320px] max-w-xs bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full"
+                >
                   <div className="relative aspect-square bg-muted border-b border-border">
                     <img
                       src={project.image}
